@@ -2,6 +2,7 @@
 #include <thread>
 #include <cstdlib>
 #include <iostream>
+#include <chrono>
 
 const unsigned int defaultThreads = 8;
 const unsigned int defaultIterations = 1000;
@@ -20,8 +21,23 @@ message baseLocation;
 void raceCountUp(const message* m)
 {
     unsigned int *lock = m->pLock;
-    //unsigned int *counter = m->pCounter;
-    while(*lock == 0);
+    unsigned int *counter = m->pCounter;
+    bool activeFlag = true;
+
+    // get set
+    while(*lock != 0);
+    // GO
+
+    unsigned int value;
+    while(activeFlag)
+    {
+        value = *counter;
+        if(maxIteration <= value)
+        {
+            activeFlag = false;
+        }
+        __sync_val_compare_and_swap(counter, value, value+1);
+    }
     return;
 }
 
@@ -48,7 +64,7 @@ int main(int argc, char** argv)
 
     baseLocation.pLock = &gLock;
     baseLocation.pCounter = &gCounter;
-    gLock = 0;
+    gLock = 1;
     gCounter = 0;
 
     std::vector<std::thread> vecThread;
@@ -57,13 +73,19 @@ int main(int argc, char** argv)
         vecThread.push_back(std::thread(raceCountUp, &baseLocation));
     }
 
-    getchar();
-    gLock = 1;
+    std::cout << threadNumber << " threads started.  Push any key" << std::endl;
+    getchar(); // get set
+    auto start = std::chrono::system_clock::now();
+    gLock = 0; // GO !
 
     for(auto&& it : vecThread)
     {
         it.join();
     }
+    auto end = std::chrono::system_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+
+    std::cout << threadNumber << '\t' << maxIteration << '\t' << duration.count() << std::endl;
 
     return 0;
 }
