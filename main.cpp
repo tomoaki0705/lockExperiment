@@ -7,6 +7,15 @@ const unsigned int defaultThreads = 8;
 const unsigned int defaultIterations = 1000;
 unsigned int threadNumber = 0;
 unsigned int maxIteration = 0;
+unsigned int gLock = 0;
+unsigned int gCounter = 0;
+
+struct message_t {
+    unsigned int* pLock;
+    unsigned int* pCounter;
+};
+typedef struct message_t message;
+
 
 int main(int argc, char** argv)
 {
