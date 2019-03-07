@@ -3,13 +3,14 @@
 #include <cstdlib>
 #include <iostream>
 #include <chrono>
+#include <atomic>
 
 const unsigned int defaultThreads = 8;
 const unsigned int defaultIterations = 1000;
 unsigned int threadNumber = 0;
 unsigned int maxIteration = 0;
 unsigned int gLock = 0;
-unsigned int gCounter = 0;
+std::atomic<unsigned int> gCounter(0);
 
 struct message_t {
     unsigned int* pLock;
@@ -21,8 +22,9 @@ message baseLocation;
 void raceCountUp(const message* m)
 {
     unsigned int *lock = m->pLock;
-    unsigned int *counter = m->pCounter;
+    //unsigned int *counter = m->pCounter;
     bool activeFlag = true;
+    //std::atomic<unsigned int> cas_lock(gCounter);
 
     // get set
     while(*lock != 0);
@@ -31,12 +33,15 @@ void raceCountUp(const message* m)
     unsigned int value;
     while(activeFlag)
     {
-        value = *counter;
+        value = gCounter.load();
         if(maxIteration <= value)
         {
             activeFlag = false;
         }
-        __sync_val_compare_and_swap(counter, value, value+1);
+        else
+        {
+            std::atomic_compare_exchange_weak(&gCounter, &value, value+1);
+        }
     }
     return;
 }
@@ -59,11 +64,9 @@ int main(int argc, char** argv)
     }
     threadNumber = 0 == threadNumber ? 1 : threadNumber;
     maxIteration = 0 == maxIteration ? 1 : maxIteration;
-    std::cout << "threadNumber: " << threadNumber << std::endl;
-    std::cout << "maxIteration: " << maxIteration << std::endl;
 
     baseLocation.pLock = &gLock;
-    baseLocation.pCounter = &gCounter;
+    //baseLocation.pCounter = &gCounter;
     gLock = 1;
     gCounter = 0;
 
@@ -73,8 +76,7 @@ int main(int argc, char** argv)
         vecThread.push_back(std::thread(raceCountUp, &baseLocation));
     }
 
-    std::cout << threadNumber << " threads started.  Push any key" << std::endl;
-    getchar(); // get set
+    // get set
     auto start = std::chrono::system_clock::now();
     gLock = 0; // GO !
 
@@ -85,7 +87,7 @@ int main(int argc, char** argv)
     auto end = std::chrono::system_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
 
-    std::cout << threadNumber << '\t' << maxIteration << '\t' << duration.count() << std::endl;
+    std::cout << threadNumber << '\t' << gCounter << '\t' << duration.count() << std::endl;
 
     return 0;
 }
