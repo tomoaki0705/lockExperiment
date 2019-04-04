@@ -9,11 +9,11 @@ const unsigned int defaultThreads = 8;
 const unsigned int defaultIterations = 1000;
 unsigned int threadNumber = 0;
 unsigned int maxIteration = 0;
-unsigned int gLock = 0;
+volatile unsigned int gLock = 0;
 std::atomic<unsigned int> gCounter(0);
 
 struct message_t {
-    unsigned int* pLock;
+    volatile unsigned int* pLock;
     unsigned int* pCounter;
 };
 typedef struct message_t message;
@@ -21,7 +21,7 @@ message baseLocation;
 
 void raceCountUp(const message* m)
 {
-    unsigned int *lock = m->pLock;
+    volatile unsigned int *lock = m->pLock;
     //unsigned int *counter = m->pCounter;
     bool activeFlag = true;
     //std::atomic<unsigned int> cas_lock(gCounter);
@@ -76,6 +76,8 @@ int main(int argc, char** argv)
         vecThread.push_back(std::thread(raceCountUp, &baseLocation));
     }
 
+    std::cout << "created " << vecThread.size() << " thread(s)" << std::endl;
+    std::cout << "get set" << std::endl;
     // get set
     auto start = std::chrono::system_clock::now();
     gLock = 0; // GO !
