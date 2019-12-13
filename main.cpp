@@ -76,8 +76,6 @@ int main(int argc, char** argv)
         vecThread.push_back(std::thread(raceCountUp, &baseLocation));
     }
 
-    std::cout << "created " << vecThread.size() << " thread(s)" << std::endl;
-    std::cout << "get set" << std::endl;
     // get set
     auto start = std::chrono::system_clock::now();
     gLock = 0; // GO !
@@ -89,7 +87,7 @@ int main(int argc, char** argv)
     auto end = std::chrono::system_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
 
-    std::cout << threadNumber << '\t' << gCounter << '\t' << duration.count() << std::endl;
+    std::cout << threadNumber << '\t' << gCounter << '\t' << duration.count() << "[ms]" << std::endl;
 
     return 0;
 }
